@@ -13,6 +13,13 @@ on:
         required: true
         type: boolean
         default: false
+  push:
+    branches:
+      - gts3llte-17.1-build
+    paths:
+      - '.github/workflows/build-gts3llte.yml'
+      - 'scripts/**'
+      - 'SELF_HOSTED_BUILD.md'
 
 concurrency:
   group: gts3llte-lineage17-selfhosted
@@ -43,12 +50,12 @@ jobs:
         run: bash orchestration/scripts/report-state.sh
 
       - name: Optional clean
-        if: ${{ inputs.clean_out }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.clean_out }}
         shell: bash
         run: rm -rf "$LINEAGE_ROOT/out"
 
       - name: Sync source
-        if: ${{ inputs.sync_source }}
+        if: ${{ github.event_name == 'push' || inputs.sync_source }}
         shell: bash
         run: bash orchestration/scripts/sync-source.sh
 
@@ -60,7 +67,7 @@ jobs:
           breakfast "$TARGET_DEVICE"
 
       - name: Sync resolved dependencies
-        if: ${{ inputs.sync_source }}
+        if: ${{ github.event_name == 'push' || inputs.sync_source }}
         shell: bash
         run: bash orchestration/scripts/sync-source.sh
 
