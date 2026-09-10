@@ -1,0 +1,95 @@
+name: Build LineageOS 17.1 - gts3llte
+
+on:
+  workflow_dispatch:
+    inputs:
+      sync_source:
+        description: "Run repo sync before build"
+        required: true
+        type: boolean
+        default: true
+      clean_out:
+        description: "Delete out/ before build"
+        required: true
+        type: boolean
+        default: false
+
+concurrency:
+  group: gts3llte-lineage17-selfhosted
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: [self-hosted, Linux, X64, gts3llte]
+    timeout-minutes: 720
+    env:
+      LINEAGE_ROOT: /home/lelouch/android/lineage17
+      BUILD_LOG: /home/lelouch/android/lineage17-build.log
+      TARGET_DEVICE: gts3llte
+
+    steps:
+      - name: Checkout build orchestration
+        uses: actions/checkout@v4
+        with:
+          ref: gts3llte-17.1-build
+          path: orchestration
+
+      - name: Prepare persistent workspace
+        shell: bash
+        run: bash orchestration/scripts/prepare-workspace.sh
+
+      - name: Report host state
+        shell: bash
+        run: bash orchestration/scripts/report-state.sh
+
+      - name: Optional clean
+        if: ${{ inputs.clean_out }}
+        shell: bash
+        run: rm -rf "$LINEAGE_ROOT/out"
+
+      - name: Sync source
+        if: ${{ inputs.sync_source }}
+        shell: bash
+        run: bash orchestration/scripts/sync-source.sh
+
+      - name: Resolve device dependencies
+        shell: bash
+        run: |
+          cd "$LINEAGE_ROOT"
+          source build/envsetup.sh
+          breakfast "$TARGET_DEVICE"
+
+      - name: Sync resolved dependencies
+        if: ${{ inputs.sync_source }}
+        shell: bash
+        run: bash orchestration/scripts/sync-source.sh
+
+      - name: Build ROM
+        shell: bash
+        run: bash orchestration/scripts/build-rom.sh
+
+      - name: Collect outputs
+        if: always()
+        shell: bash
+        run: bash orchestration/scripts/collect-output.sh
+
+      - name: Upload ROM
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lineage-17.1-gts3llte
+          path: orchestration/artifacts/*.zip
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gts3llte-build-logs
+          path: |
+            orchestration/artifacts/*.log
+            orchestration/artifacts/host-state.txt
+          if-no-files-found: warn
+          retention-days: 14
