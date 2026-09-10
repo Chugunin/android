@@ -23,7 +23,7 @@ on:
 
 concurrency:
   group: gts3llte-lineage17-selfhosted
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
