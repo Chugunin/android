@@ -2,12 +2,25 @@
 set -euo pipefail
 
 : "${LINEAGE_ROOT:=/home/lelouch/android/lineage17}"
-mkdir -p "$LINEAGE_ROOT/.repo/local_manifests"
+export PATH="$HOME/bin:$PATH"
+
+mkdir -p "$LINEAGE_ROOT"
 cd "$LINEAGE_ROOT"
 
-if [ ! -d .repo ]; then
-  repo init -u https://github.com/Chugunin/android.git -b lineage-17.1 --depth=1 --no-clone-bundle -g default,-darwin --platform=linux
+REPO_BIN="$(command -v repo || true)"
+if [ -z "$REPO_BIN" ] && [ -x "$HOME/bin/repo" ]; then
+  REPO_BIN="$HOME/bin/repo"
 fi
+if [ -z "$REPO_BIN" ]; then
+  echo "repo tool not found. Expected it in PATH or at $HOME/bin/repo" >&2
+  exit 127
+fi
+
+if [ ! -d .repo ]; then
+  "$REPO_BIN" init -u https://github.com/Chugunin/android.git -b lineage-17.1 --depth=1 --no-clone-bundle -g default,-darwin --platform=linux
+fi
+
+mkdir -p .repo/local_manifests
 
 cat > .repo/local_manifests/gts3llte.xml <<'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -19,6 +32,18 @@ cat > .repo/local_manifests/gts3llte.xml <<'EOF'
 </manifest>
 EOF
 
+# The full linux clang prebuilt Git repository is very large and repeatedly
+# fails on this host/network path. Keep it out of repo sync and bootstrap only
+# the compiler directories required by Android Q via sparse partial clone.
+rm -f .repo/local_manifests/prebuilt-mirrors.xml
+cat > .repo/local_manifests/manual-clang.xml <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+  <remove-project name="platform/prebuilts/clang/host/linux-x86" />
+</manifest>
+EOF
+
 echo "Workspace: $LINEAGE_ROOT"
-echo "Local manifest:"
+echo "Local manifests:"
 cat .repo/local_manifests/gts3llte.xml
+cat .repo/local_manifests/manual-clang.xml
