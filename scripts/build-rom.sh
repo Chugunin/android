@@ -5,12 +5,16 @@ set -euo pipefail
 : "${BUILD_LOG:=$LINEAGE_ROOT/lineage17-build.log}"
 : "${TARGET_DEVICE:=gts3llte}"
 
-cd "$LINEAGE_ROOT"
-source build/envsetup.sh
-lunch "lineage_${TARGET_DEVICE}-userdebug"
+run_build() {
+    cd "$LINEAGE_ROOT"
+    source build/envsetup.sh
+    lunch "lineage_${TARGET_DEVICE}-userdebug"
+    brunch "$TARGET_DEVICE"
+}
 
+: > "$BUILD_LOG"
 set +e
-brunch "$TARGET_DEVICE" 2>&1 | tee "$BUILD_LOG"
+run_build 2>&1 | tee "$BUILD_LOG"
 status=${PIPESTATUS[0]}
 set -e
 
