@@ -8,20 +8,14 @@ mkdir -p "$LINEAGE_ROOT"
 cd "$LINEAGE_ROOT"
 
 REPO_BIN="$(command -v repo || true)"
-if [ -z "$REPO_BIN" ] && [ -x "$HOME/bin/repo" ]; then
-  REPO_BIN="$HOME/bin/repo"
-fi
-if [ -z "$REPO_BIN" ]; then
-  echo "repo tool not found. Expected it in PATH or at $HOME/bin/repo" >&2
-  exit 127
-fi
+if [ -z "$REPO_BIN" ] && [ -x "$HOME/bin/repo" ]; then REPO_BIN="$HOME/bin/repo"; fi
+if [ -z "$REPO_BIN" ]; then echo "repo tool not found. Expected it in PATH or at $HOME/bin/repo" >&2; exit 127; fi
 
 if [ ! -d .repo ]; then
   "$REPO_BIN" init -u https://github.com/Chugunin/android.git -b lineage-17.1 --depth=1 --no-clone-bundle -g default,-darwin --platform=linux
 fi
 
 mkdir -p .repo/local_manifests
-
 cat > .repo/local_manifests/gts3llte.xml <<'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <manifest>
@@ -32,18 +26,17 @@ cat > .repo/local_manifests/gts3llte.xml <<'EOF'
 </manifest>
 EOF
 
-# The full linux clang prebuilt Git repository is very large and repeatedly
-# fails on this host/network path. Keep it out of repo sync and bootstrap only
-# the compiler directories required by Android Q via sparse partial clone.
-rm -f .repo/local_manifests/prebuilt-mirrors.xml
-cat > .repo/local_manifests/manual-clang.xml <<'EOF'
+rm -f .repo/local_manifests/prebuilt-mirrors.xml .repo/local_manifests/manual-clang.xml
+cat > .repo/local_manifests/manual-prebuilts.xml <<'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <manifest>
   <remove-project name="platform/prebuilts/clang/host/linux-x86" />
+  <remove-project name="platform/prebuilts/gradle-plugin" />
+  <remove-project name="platform/prebuilts/tools" />
 </manifest>
 EOF
 
 echo "Workspace: $LINEAGE_ROOT"
 echo "Local manifests:"
 cat .repo/local_manifests/gts3llte.xml
-cat .repo/local_manifests/manual-clang.xml
+cat .repo/local_manifests/manual-prebuilts.xml
