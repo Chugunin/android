@@ -80,6 +80,15 @@ jobs:
         shell: bash
         run: bash orchestration/scripts/collect-output.sh
 
+      - name: Stage diagnostics
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p orchestration/artifacts
+          cp -f "$LINEAGE_ROOT/repo-sync.log" orchestration/artifacts/repo-sync.log 2>/dev/null || true
+          cp -f "$BUILD_LOG" orchestration/artifacts/build.log 2>/dev/null || true
+          bash orchestration/scripts/report-state.sh > orchestration/artifacts/host-state-final.txt 2>&1 || true
+
       - name: Upload ROM
         if: success()
         uses: actions/upload-artifact@v4
@@ -97,6 +106,6 @@ jobs:
           name: gts3llte-build-logs
           path: |
             orchestration/artifacts/*.log
-            orchestration/artifacts/host-state.txt
+            orchestration/artifacts/host-state*.txt
           if-no-files-found: warn
           retention-days: 14
