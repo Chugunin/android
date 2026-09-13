@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -eo pipefail
 
 : "${LINEAGE_ROOT:=/home/lelouch/android/lineage17}"
 : "${BUILD_LOG:=$LINEAGE_ROOT/lineage17-build.log}"
