@@ -65,7 +65,6 @@ download_archive() {
       --speed-limit 1024 \
       --retry 2 \
       --retry-delay 5 \
-      --retry-all-errors \
       -C - \
       "$url" -o "$archive" 2>&1 | tee -a "$LOG"
     rc=${PIPESTATUS[0]}
