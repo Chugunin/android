@@ -36,6 +36,21 @@ cat > .repo/local_manifests/manual-prebuilts.xml <<'EOF'
 </manifest>
 EOF
 
+# The clang project is intentionally excluded from repo sync because the large
+# upstream repository is unreliable on this runner. The manually installed
+# clang-r353983c directory therefore has no repository-root Android.bp. Restore
+# the Q-era Soong export needed by header-checker and other host LLVM tools.
+CLANG_PREBUILT_ROOT="$LINEAGE_ROOT/prebuilts/clang/host/linux-x86"
+if [ -d "$CLANG_PREBUILT_ROOT/clang-r353983c" ] && [ ! -f "$CLANG_PREBUILT_ROOT/Android.bp" ]; then
+  cat > "$CLANG_PREBUILT_ROOT/Android.bp" <<'EOF'
+// Minimal Soong metadata retained alongside the manually installed Q clang.
+// Export LLVM_BUILD_HOST_TOOLS.
+llvm_host_defaults {
+    name: "llvm-build-host-tools-defaults",
+}
+EOF
+fi
+
 echo "Workspace: $LINEAGE_ROOT"
 echo "Local manifests:"
 cat .repo/local_manifests/gts3llte.xml
