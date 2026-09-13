@@ -21,6 +21,7 @@ CLANG_BASE="https://android.googlesource.com/platform/prebuilts/clang/host/linux
 CLANG_TAG_PRIMARY="android-10.0.0_r41"
 CLANG_TAG_FALLBACK="android-10.0.0_r3"
 CACHE_DIR="$LINEAGE_ROOT/.bootstrap-cache/clang-q"
+DOWNLOADED_ARCHIVE=""
 
 log() {
   printf '%s\n' "$*" | tee -a "$LOG"
@@ -52,6 +53,7 @@ download_archive() {
   local url="$CLANG_BASE/$tag/$subtree.tar.gz"
   local attempt rc
 
+  DOWNLOADED_ARCHIVE=""
   mkdir -p "$CACHE_DIR"
   for attempt in 1 2 3; do
     log "Downloading clang subtree $subtree from $tag (attempt $attempt/3; resume enabled)"
@@ -70,7 +72,7 @@ download_archive() {
     set -e
 
     if (( rc == 0 )) && tar -tzf "$archive" >/dev/null 2>&1; then
-      printf '%s\n' "$archive"
+      DOWNLOADED_ARCHIVE="$archive"
       return 0
     fi
 
@@ -95,9 +97,10 @@ install_subtree() {
   local archive=""
   local dest="$CLANG_DIR/$subtree"
 
-  if archive="$(download_archive "$subtree" "$CLANG_TAG_PRIMARY")"; then
-    :
-  elif archive="$(download_archive "$subtree" "$CLANG_TAG_FALLBACK")"; then
+  if download_archive "$subtree" "$CLANG_TAG_PRIMARY"; then
+    archive="$DOWNLOADED_ARCHIVE"
+  elif download_archive "$subtree" "$CLANG_TAG_FALLBACK"; then
+    archive="$DOWNLOADED_ARCHIVE"
     log "Using Android Q fallback tag $CLANG_TAG_FALLBACK for $subtree"
   else
     log "Unable to download required clang subtree: $subtree"
